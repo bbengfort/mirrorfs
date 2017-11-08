@@ -47,11 +47,12 @@ func mount(c *cli.Context) (err error) {
 	verbose := c.Uint("verbosity")
 	fs.SetLogLevel(uint8(verbose))
 
-	// Mount the directory with the arguments
+	// Ensure mount and mirror directories are specified
 	if c.NArg() != 2 {
 		return cli.NewExitError("specify the mount and mirror directories", 1)
 	}
 
+	// Mount the directory with the arguments
 	args := c.Args()
 	if err := fs.Mount(args.Get(0), args.Get(1)); err != nil {
 		return err

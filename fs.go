@@ -3,6 +3,8 @@ package mirrorfs
 import (
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"bazil.org/fuse"
 	fusefs "bazil.org/fuse/fs"
@@ -16,6 +18,27 @@ import (
 func init() {
 	// Initialize our debug logging with our prefix
 	logger = log.New(os.Stdout, "[mirrorfs] ", log.Lmicroseconds)
+}
+
+func signalHandler(mount string) {
+	// Make signal channel and register notifiers for Interupt and Terminate
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt)
+	signal.Notify(sigchan, syscall.SIGTERM)
+
+	// Block until we receive a signal on the channel
+	<-sigchan
+
+	// Defer the clean exit until the end of the function
+	defer os.Exit(0)
+
+	// Ensure the file system is unmounted
+	err := fuse.Unmount(mount)
+	if err != nil {
+		warn("unmount error: %s", err)
+		os.Exit(1)
+	}
+	info("unmounted mirrorfs://%s", mount)
 }
 
 //===========================================================================
@@ -45,6 +68,9 @@ func Mount(mount, mirror string) (err error) {
 
 	// Ensure connection is closed when done
 	defer conn.Close()
+
+	// Ensure that we unmount the file system when done
+	go signalHandler(mount)
 
 	// Serve the file system.
 	if err := fusefs.Serve(conn, fs); err != nil {
