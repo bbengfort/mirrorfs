@@ -4,7 +4,20 @@
 
 ## Usage
 
-Coming soon!
+Clone the repository into your `$GOPATH` or install as follows:
+
+```
+$ go get github.com/bbengfort/... 
+```
+
+If you've run `go install` (by default with `go get`) then you should have the `mirrorfs` command:
+
+```
+$ mirrorfs mount path/to/mount path/to/mirror 
+```
+
+All operations in `path/to/mount` will be mirrored to `path/to/mirror` and vice-versa. 
+
 
 ## Fuse Implementation
 
@@ -18,18 +31,20 @@ MirrorFS implements the following methods/interfaces:
 - `(*Node) Lookup(ctx context.Context, name string) (fusefs.Node, error)`
 - `(*Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error)`
 - `(*Node) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fusefs.Node, error)`
-- `(*Node) Fsync(ctx context.Context, req *fuse.FsyncRequest) error`
 - `(*Node) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error)`
-- `(*Node) ReadAll(ctx context.Context) ([]byte, error)`
-- `(*Node) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error`
-- `(*Node) Flush(ctx context.Context, req *fuse.FlushRequest) error`
 - `(*Node) Remove(ctx context.Context, req *fuse.RemoveRequest) error`
 - `(*Node) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fusefs.Node) error`
+- `(*Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error`
+- `(*Node) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) error`
+- `(*Node) Fsync(ctx context.Context, req *fuse.FsyncRequest) error`
+- `(*Node) Flush(ctx context.Context, req *fuse.FlushRequest) error`
+- `(*Node) Release(ctx context.Context, req *fuse.ReleaseRequest) error`
 
 ### Notes
 
 - If `Getattr` is not implemented will use `Attr` and fill in zero values.
 - `Setattr` is used to communicate changes to a file size, e.g. truncate.
+- `Create` creates and opens a file handle; the node is also used as a handle since it has an open reference to the file object in mirror.
 
 ### Reference
 

@@ -21,7 +21,7 @@ const (
 )
 
 // CautionThreshold for issuing caution logs after accumulating cautions.
-const CautionThreshold = 80
+const CautionThreshold = 10
 
 // These variables are initialized in init()
 var logLevel = Debug

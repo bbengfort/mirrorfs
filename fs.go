@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"bazil.org/fuse"
@@ -18,6 +19,8 @@ import (
 func init() {
 	// Initialize our debug logging with our prefix
 	logger = log.New(os.Stdout, "[mirrorfs] ", log.Lmicroseconds)
+	cautionCounter = new(counter)
+	cautionCounter.init()
 }
 
 func signalHandler(mount string) {
@@ -38,7 +41,7 @@ func signalHandler(mount string) {
 		warn("unmount error: %s", err)
 		os.Exit(1)
 	}
-	info("unmounted mirrorfs://%s", mount)
+	info("unmounted %s", mount)
 }
 
 //===========================================================================
@@ -48,13 +51,13 @@ func signalHandler(mount string) {
 // Mount the mirror file system at the specified path, mirroring to the other
 // path. This returns an error if the mount point does not exist.
 func Mount(mount, mirror string) (err error) {
-	info("mounting mirrorfs://%s to mirror to %s", mount, mirror)
+	info("mounting %s to mirror %s", mount, mirror)
 
 	// Unmount the FS in case it was mounted with errors
 	fuse.Unmount(mount)
 
 	// Mount the FS with the specified options.
-	fs := NewFS(mount, mirror)
+	fs := NewFS(mount, mirror, false)
 	conn, err := fuse.Mount(
 		mount,
 		fuse.FSName("MirrorFS"),
@@ -91,11 +94,16 @@ func Mount(mount, mirror string) (err error) {
 //===========================================================================
 
 // NewFS returns a new FileSystem object
-func NewFS(mount, mirror string) *FileSystem {
+func NewFS(mount, mirror string, abs bool) *FileSystem {
+	if abs {
+		mount, _ = filepath.Abs(mount)
+		mirror, _ = filepath.Abs(mirror)
+	}
+
 	fs := new(FileSystem)
 	fs.mount = mount
 	fs.mirror = mirror
-	fs.root, _ = fs.makeNode(mount)
+	fs.root, _ = fs.makeNode(fs.mount)
 	return fs
 }
 
@@ -113,5 +121,5 @@ func (fs FileSystem) Root() (fusefs.Node, error) {
 
 // create a node from a path relative to the mount directory.
 func (fs *FileSystem) makeNode(path string) (*Node, error) {
-	return &Node{path, fs}, nil
+	return &Node{path, fs, nil}, nil
 }
