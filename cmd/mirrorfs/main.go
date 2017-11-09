@@ -17,7 +17,7 @@ func main() {
 	// Instantiate the command line application
 	app := cli.NewApp()
 	app.Name = "mirrofs"
-	app.Version = "0.1"
+	app.Version = "0.2"
 	app.Usage = "simple FUSE file system that mirrors a directory"
 
 	// Define commands available to the application

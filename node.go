@@ -140,7 +140,9 @@ func (n *Node) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse
 		} else if req.Valid.Atime() {
 			atime = req.Atime
 		} else {
-			atime = timefspec(stat.Atimespec)
+			// Becasue we can't determine if Atim or Atimespec is on the
+			// Stat_t struct, we will just pass an empty atime for now.
+			atime = time.Time{}
 		}
 
 		if req.Valid.MtimeNow() {
@@ -148,7 +150,7 @@ func (n *Node) Setattr(ctx context.Context, req *fuse.SetattrRequest, resp *fuse
 		} else if req.Valid.Mtime() {
 			mtime = req.Mtime
 		} else {
-			mtime = timefspec((stat.Mtimespec))
+			mtime = finfo.ModTime()
 		}
 
 		os.Chtimes(n.mirrorPath(), atime, mtime)
@@ -309,24 +311,32 @@ func (n *Node) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.No
 // File Node Methods
 //===========================================================================
 
+// Open implements fuse.NodeOpener
+func (n *Node) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
+	trace("Open %s", n.path)
+
+	var err error
+	var info os.FileInfo
+
+	// Find the mode of the file
+	info, err = os.Stat(n.mirrorPath())
+	if err != nil {
+		return nil, errno(err)
+	}
+
+	// Open the file with the specified read flags
+	n.file, err = os.OpenFile(n.mirrorPath(), int(req.Flags), info.Mode())
+	if err != nil {
+		return nil, errno(err)
+	}
+
+	// Return the node as the handle
+	return n, nil
+}
+
 // Read implements fuse.HandleReader
 func (n *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) (err error) {
 	trace("Read %s", n.path)
-
-	if n.file == nil {
-		// Find the mode of the file
-		var info os.FileInfo
-		info, err = os.Stat(n.mirrorPath())
-		if err != nil {
-			return errno(err)
-		}
-
-		// Open the file with the specified read flags
-		n.file, err = os.OpenFile(n.mirrorPath(), int(req.FileFlags), info.Mode())
-		if err != nil {
-			return errno(err)
-		}
-	}
 
 	resp.Data = make([]byte, req.Size)
 	nbytes, err := n.file.ReadAt(resp.Data, req.Offset)
@@ -346,21 +356,6 @@ func (n *Node) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadR
 // Write implements fuse.HandleWriter
 func (n *Node) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.WriteResponse) (err error) {
 	trace("Write %s", n.path)
-
-	if n.file == nil {
-		// Find the mode of the file
-		var info os.FileInfo
-		info, err = os.Stat(n.mirrorPath())
-		if err != nil {
-			return errno(err)
-		}
-
-		// Open the file with the specified read flags
-		n.file, err = os.OpenFile(n.mirrorPath(), int(req.FileFlags), info.Mode())
-		if err != nil {
-			return errno(err)
-		}
-	}
 
 	// Write the data to the file
 	resp.Size, err = n.file.WriteAt(req.Data, req.Offset)

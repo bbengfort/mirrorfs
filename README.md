@@ -7,16 +7,16 @@
 Clone the repository into your `$GOPATH` or install as follows:
 
 ```
-$ go get github.com/bbengfort/... 
+$ go get github.com/bbengfort/...
 ```
 
 If you've run `go install` (by default with `go get`) then you should have the `mirrorfs` command:
 
 ```
-$ mirrorfs mount path/to/mount path/to/mirror 
+$ mirrorfs mount path/to/mount path/to/mirror
 ```
 
-All operations in `path/to/mount` will be mirrored to `path/to/mirror` and vice-versa. 
+All operations in `path/to/mount` will be mirrored to `path/to/mirror` and vice-versa.
 
 
 ## Fuse Implementation
@@ -45,10 +45,12 @@ MirrorFS implements the following methods/interfaces:
 - If `Getattr` is not implemented will use `Attr` and fill in zero values.
 - `Setattr` is used to communicate changes to a file size, e.g. truncate.
 - `Create` creates and opens a file handle; the node is also used as a handle since it has an open reference to the file object in mirror.
+- If `Open` is not implemented it will always succeed and the node itself will be returned as the handle. 
+- `Fsync` is a low level op, telling the OS to flush its buffers to physical media. `Flush` tells an application to flush its internal buffers out to the OS.
 
 ### Reference
 
-This section contains a complete listing of interfaces that can be implemented by a bazil.org/fuse application.
+This section contains a complete listing of interfaces that can be implemented by a bazil.org/fuse application. Note that syscall error numbers can be found [here](https://gist.github.com/bbengfort/cb0f999284a42ee993bb8cbdc1e0dfec).
 
 #### FS Interfaces
 
