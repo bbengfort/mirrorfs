@@ -1,7 +1,6 @@
 package mirrorfs
 
 import (
-	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -9,6 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
